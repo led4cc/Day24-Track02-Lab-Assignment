@@ -1,5 +1,6 @@
 # src/access/rbac.py
 import casbin
+import inspect
 from functools import wraps
 from fastapi import HTTPException, Header
 from typing import Optional
@@ -20,13 +21,13 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
     Raise HTTPException 401 nếu token không hợp lệ.
     """
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=___, detail="Missing token")
+        raise HTTPException(status_code=401, detail="Missing token")
 
-    token = authorization.split(" ")[1]
+    token = authorization.removeprefix("Bearer ").strip()
     user = MOCK_USERS.get(token)
 
     if not user:
-        raise HTTPException(status_code=___, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid token")
 
     return user
 
@@ -41,15 +42,22 @@ def require_permission(resource: str, action: str):
         async def wrapper(*args, **kwargs):
             # Lấy current_user từ kwargs (FastAPI inject qua Depends)
             current_user = kwargs.get("current_user")
+            if not current_user:
+                raise HTTPException(status_code=401, detail="Missing user")
+
+            username = current_user["username"]
             role = current_user["role"]
 
-            allowed = enforcer.enforce(___, ___, ___)  # TODO
+            allowed = enforcer.enforce(username, resource, action)
 
             if not allowed:
                 raise HTTPException(
-                    status_code=___,    # TODO: HTTP status code
+                    status_code=403,
                     detail=f"Role '{role}' cannot '{action}' on '{resource}'"
                 )
-            return await func(*args, **kwargs)
+            result = func(*args, **kwargs)
+            if inspect.isawaitable(result):
+                return await result
+            return result
         return wrapper
     return decorator

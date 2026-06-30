@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local environments
+.venv/
+venv/
+env/
+
+# Local secrets and generated sensitive data
+.env
+.env.*
+!.env.example
+.vault_key
+data/raw/
+data/processed/
+
+# Security scan output
+bandit-report.*
+pip-audit-report.*
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
